@@ -137,7 +137,7 @@ export default function HomePage() {
     router.push('/login')
   }
 
-  const groupedByDate = monthlyLogs.reduce((acc, log) => {
+  const groupedByDate = monthlyLogs.reduce((acc: Record<string, any[]>, log) => {
     const date = new Date(log.created_at).toLocaleDateString('ja-JP', {
       month: 'numeric', day: 'numeric'
     })
