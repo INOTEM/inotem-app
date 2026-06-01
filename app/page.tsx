@@ -153,25 +153,23 @@ export default function HomePage() {
   const now = new Date()
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-extrabold">INOTEM APP</h1>
-          <button
-            onClick={handleLogout}
-            className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
-          >
-            ログアウト
-          </button>
-        </div>
-        <div className="flex gap-3 mb-6">
-          <button
-            onClick={() => router.push('/daily-report')}
-            className="text-base bg-white border border-gray-200 px-4 py-2 rounded font-extrabold hover:bg-black hover:text-white transition-colors"
-          >
-            日報を入力
-          </button>
-        </div>
+    <div className="flex justify-between items-center mb-6">
+      <h1 className="text-2xl font-extrabold">INOTEM APP</h1>
+      <div className="flex gap-2">
+        <button
+          onClick={() => router.push('/daily-report')}
+          className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
+        >
+          報告
+        </button>
+        <button
+          onClick={handleLogout}
+          className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
+        >
+          ログアウト
+        </button>
+      </div>
+    </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* 左：打刻 + 今日のログ */}
           <div>
