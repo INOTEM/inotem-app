@@ -164,7 +164,14 @@ export default function HomePage() {
             ログアウト
           </button>
         </div>
-
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={() => router.push('/daily-report')}
+            className="text-base bg-white border border-gray-200 px-4 py-2 rounded font-extrabold hover:bg-black hover:text-white transition-colors"
+          >
+            日報を入力
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* 左：打刻 + 今日のログ */}
           <div>
