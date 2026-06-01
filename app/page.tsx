@@ -153,25 +153,27 @@ export default function HomePage() {
   const now = new Date()
 
   return (
-    <div className="flex justify-between items-center mb-6">
-      <h1 className="text-2xl font-extrabold">INOTEM APP</h1>
-      <div className="flex gap-2">
-        <button
-          onClick={() => router.push('/daily-report')}
-          className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
-        >
-          報告
-        </button>
-        <button
-          onClick={handleLogout}
-          className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
-        >
-          ログアウト
-        </button>
-      </div>
-    </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-extrabold">INOTEM APP</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push('/daily-report')}
+              className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
+            >
+              報告
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
+            >
+              ログアウト
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* 左：打刻 + 今日のログ */}
           <div>
             <p className="text-gray-500 text-base mb-4">
               ステータス: <span className="font-extrabold text-black">{status}</span>
@@ -205,7 +207,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* 右：月次勤務表 */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-base font-extrabold">{now.getMonth() + 1}月の勤務表</h2>
@@ -234,7 +235,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* チームボード */}
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <h2 className="text-base font-extrabold mb-4">チームの状況</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
