@@ -183,6 +183,14 @@ export default function HomePage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-extrabold">INOTEM APP</h1>
           <div className="flex gap-2">
+          {userPosition === 'admin' && (
+            <button
+              onClick={() => router.push('/admin')}
+              className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
+            >
+              管理
+            </button>
+          )}
             <button
               onClick={() => router.push('/daily-report')}
               className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
