@@ -209,7 +209,7 @@ export default function HomePage() {
                   onClick={() => router.push('/daily-report')}
                   className="text-sm text-red-500 underline mt-1"
                 >
-                  日報を提出する →
+                  日報を提出する
                 </button>
               </div>
             )}
@@ -240,15 +240,16 @@ export default function HomePage() {
             ) : (
               Object.entries(groupedByDate).map(([date, logs]) => {
                 const result = calcDailyHours(logs)
+                const timeStr = result
+                  ? result.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                    + ' - '
+                    + result.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                  : '-'
                 return (
                   <div key={date} className="flex justify-between text-base py-2 border-b border-gray-100 last:border-0">
                     <span className="text-gray-500">{date}</span>
-                    <span>
-                      {result
-                        ? `${result.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })} - ${result.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`
-                        : '—'}
-                    </span>
-                    <span className="font-extrabold">{result ? `${result.hours.toFixed(2)}h` : '—'}</span>
+                    <span>{timeStr}</span>
+                    <span className="font-extrabold">{result ? result.hours.toFixed(2) + 'h' : '-'}</span>
                   </div>
                 )
               })
@@ -261,7 +262,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {teamStatus.map((member, i) => (
               <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100">
-                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${STATUS_COLORS[member.status] ?? 'bg-gray-300'}`} />
+                <div className={['w-3 h-3 rounded-full flex-shrink-0', STATUS_COLORS[member.status] ?? 'bg-gray-300'].join(' ')} />
                 <div>
                   <p className="text-base font-extrabold">{member.name}</p>
                   <p className="text-sm text-gray-400">{member.status}</p>
@@ -275,4 +276,3 @@ export default function HomePage() {
     </div>
   )
 }
-```
