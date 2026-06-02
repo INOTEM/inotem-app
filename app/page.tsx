@@ -1,4 +1,4 @@
-// @ts-nocheck 
+// @ts-nocheck
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -7,7 +7,7 @@ import { createClient } from '@/utils/supabase'
 
 const ACTIONS = ['出勤', '離席', '戻り', '退勤']
 
-const ALLOWED_ACTIONS: Record<string, string[]> = {
+const ALLOWED_ACTIONS = {
   '未出勤': ['出勤'],
   '出勤': ['離席', '退勤'],
   '戻り': ['離席', '退勤'],
@@ -15,7 +15,7 @@ const ALLOWED_ACTIONS: Record<string, string[]> = {
   '退勤': [],
 }
 
-const STATUS_COLORS: Record<string, string> = {
+const STATUS_COLORS = {
   '未出勤': 'bg-gray-300',
   '出勤': 'bg-green-400',
   '戻り': 'bg-green-400',
@@ -23,14 +23,11 @@ const STATUS_COLORS: Record<string, string> = {
   '退勤': 'bg-gray-900',
 }
 
-const calcDailyHours = (dayLogs: any[]) => {
+const calcDailyHours = (dayLogs) => {
   const sorted = [...dayLogs].sort((a, b) =>
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   )
-  let clockIn: Date | null = null
-  let clockOut: Date | null = null
-  let breakMs = 0
-  let breakStart: Date | null = null
+  let clockIn = null, clockOut = null, breakMs = 0, breakStart = null
   for (const log of sorted) {
     const ts = new Date(log.created_at)
     if (log.action === '出勤') clockIn = ts
@@ -50,15 +47,15 @@ const calcDailyHours = (dayLogs: any[]) => {
 }
 
 export default function HomePage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState(null)
   const [status, setStatus] = useState('未出勤')
-  const [todayLogs, setTodayLogs] = useState<any[]>([])
-  const [monthlyLogs, setMonthlyLogs] = useState<any[]>([])
-  const [teamStatus, setTeamStatus] = useState<any[]>([])
+  const [todayLogs, setTodayLogs] = useState([])
+  const [monthlyLogs, setMonthlyLogs] = useState([])
+  const [teamStatus, setTeamStatus] = useState([])
   const [loading, setLoading] = useState(false)
   const [reportSubmitted, setReportSubmitted] = useState(false)
   const [userPosition, setUserPosition] = useState('')
-  const [reportError, setReportError] = useState(false)
+  const [reportError, setReportError] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -70,33 +67,26 @@ export default function HomePage() {
       fetchTodayLogs(user.id)
       fetchMonthlyLogs(user.id)
       fetchTeamStatus()
+
       const { data: prof } = await supabase
-      .from('staff_profiles')
-      .select('position')
-      .eq('user_id', user.id)
-      .single()
+        .from('staff_profiles').select('position').eq('user_id', user.id).single()
       if (prof) setUserPosition(prof.position)
 
       const todayStr = new Date().toISOString().split('T')[0]
       const { data: report } = await supabase
-      .from('daily_reports')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('report_date', todayStr)
-      .single()
+        .from('daily_reports').select('id')
+        .eq('user_id', user.id).eq('report_date', todayStr).single()
       if (report) setReportSubmitted(true)
     }
     getUser()
   }, [])
 
-  const fetchTodayLogs = async (userId: string) => {
+  const fetchTodayLogs = async (userId) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const { data } = await supabase
-      .from('attendance_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('created_at', today.toISOString())
+      .from('attendance_logs').select('*')
+      .eq('user_id', userId).gte('created_at', today.toISOString())
       .order('created_at', { ascending: true })
     if (data && data.length > 0) {
       setTodayLogs(data)
@@ -104,50 +94,40 @@ export default function HomePage() {
     }
   }
 
-  const fetchMonthlyLogs = async (userId: string) => {
+  const fetchMonthlyLogs = async (userId) => {
     const now = new Date()
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
     const { data } = await supabase
-      .from('attendance_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('created_at', firstDay.toISOString())
+      .from('attendance_logs').select('*')
+      .eq('user_id', userId).gte('created_at', firstDay.toISOString())
       .order('created_at', { ascending: true })
     if (data) setMonthlyLogs(data)
   }
 
   const fetchTeamStatus = async () => {
-    const { data: staff } = await supabase
-      .from('staff_profiles')
-      .select('user_id, name')
+    const { data: staff } = await supabase.from('staff_profiles').select('user_id, name')
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const { data: logs } = await supabase
-      .from('attendance_logs')
-      .select('user_id, action, created_at')
-      .gte('created_at', today.toISOString())
-      .order('created_at', { ascending: false })
+      .from('attendance_logs').select('user_id, action, created_at')
+      .gte('created_at', today.toISOString()).order('created_at', { ascending: false })
     if (staff && logs) {
-      const result = staff.map(member => {
-        const latest = logs.find(l => l.user_id === member.user_id)
-        return { name: member.name, status: latest?.action ?? '未出勤' }
-      })
-      setTeamStatus(result)
+      setTeamStatus(staff.map(member => ({
+        name: member.name,
+        status: logs.find(l => l.user_id === member.user_id)?.action ?? '未出勤'
+      })))
     }
   }
 
-  const handleAction = async (action: string) => {
+  const handleAction = async (action) => {
     if (!user) return
     if (action === '退勤' && userPosition !== 'admin' && !reportSubmitted) {
       setReportError(true)
-      setLoading(false)
       return
     }
     setReportError(false)
     setLoading(true)
-    const { error } = await supabase
-      .from('attendance_logs')
-      .insert({ user_id: user.id, action })
+    const { error } = await supabase.from('attendance_logs').insert({ user_id: user.id, action })
     if (!error) {
       setStatus(action)
       fetchTodayLogs(user.id)
@@ -162,14 +142,12 @@ export default function HomePage() {
     router.push('/login')
   }
 
-  const groupedByDate = monthlyLogs.reduce((acc: Record<string, any[]>, log) => {
-    const date = new Date(log.created_at).toLocaleDateString('ja-JP', {
-      month: 'numeric', day: 'numeric'
-    })
+  const groupedByDate = monthlyLogs.reduce((acc, log) => {
+    const date = new Date(log.created_at).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
     if (!acc[date]) acc[date] = []
     acc[date].push(log)
     return acc
-  }, {} as Record<string, any[]>)
+  }, {})
 
   const totalHours = Object.values(groupedByDate)
     .map(logs => calcDailyHours(logs)?.hours ?? 0)
@@ -180,6 +158,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
+
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-extrabold">INOTEM APP</h1>
           <div className="flex gap-2">
@@ -211,7 +190,7 @@ export default function HomePage() {
             <p className="text-gray-500 text-base mb-4">
               ステータス: <span className="font-extrabold text-black">{status}</span>
             </p>
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-4">
               {ACTIONS.map(action => (
                 <button
                   key={action}
@@ -224,7 +203,7 @@ export default function HomePage() {
               ))}
             </div>
             {reportError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                 <p className="text-base text-red-600 font-extrabold">退勤前に日報を提出してください</p>
                 <button
                   onClick={() => router.push('/daily-report')}
@@ -269,9 +248,7 @@ export default function HomePage() {
                         ? `${result.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })} - ${result.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`
                         : '—'}
                     </span>
-                    <span className="font-extrabold">
-                      {result ? `${result.hours.toFixed(2)}h` : '—'}
-                    </span>
+                    <span className="font-extrabold">{result ? `${result.hours.toFixed(2)}h` : '—'}</span>
                   </div>
                 )
               })
@@ -298,3 +275,4 @@ export default function HomePage() {
     </div>
   )
 }
+```
