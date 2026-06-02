@@ -56,6 +56,9 @@ export default function HomePage() {
   const [monthlyLogs, setMonthlyLogs] = useState<any[]>([])
   const [teamStatus, setTeamStatus] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [reportSubmitted, setReportSubmitted] = useState(false)
+  const [userPosition, setUserPosition] = useState('')
+  const [reportError, setReportError] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -67,6 +70,21 @@ export default function HomePage() {
       fetchTodayLogs(user.id)
       fetchMonthlyLogs(user.id)
       fetchTeamStatus()
+      const { data: prof } = await supabase
+      .from('staff_profiles')
+      .select('position')
+      .eq('user_id', user.id)
+      .single()
+      if (prof) setUserPosition(prof.position)
+
+      const todayStr = new Date().toISOString().split('T')[0]
+      const { data: report } = await supabase
+      .from('daily_reports')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('report_date', todayStr)
+      .single()
+      if (report) setReportSubmitted(true)
     }
     getUser()
   }, [])
@@ -120,6 +138,12 @@ export default function HomePage() {
 
   const handleAction = async (action: string) => {
     if (!user) return
+    if (action === '退勤' && userPosition !== 'admin' && !reportSubmitted) {
+      setReportError(true)
+      setLoading(false)
+      return
+    }
+    setReportError(false)
     setLoading(true)
     const { error } = await supabase
       .from('attendance_logs')
@@ -191,6 +215,17 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
+            {reportError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
+                <p className="text-base text-red-600 font-extrabold">退勤前に日報を提出してください</p>
+                <button
+                  onClick={() => router.push('/daily-report')}
+                  className="text-sm text-red-500 underline mt-1"
+                >
+                  日報を提出する →
+                </button>
+              </div>
+            )}
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h2 className="text-base font-extrabold mb-3">本日のログ</h2>
               {todayLogs.length === 0 ? (
