@@ -121,10 +121,7 @@ export default function HomePage() {
 
   const handleAction = async (action) => {
     if (!user) return
-    if (action === '退勤' && userPosition !== 'admin' && !reportSubmitted) {
-      setReportError(true)
-      return
-    }
+    
     setReportError(false)
     setLoading(true)
     const { error } = await supabase.from('attendance_logs').insert({ user_id: user.id, action })
