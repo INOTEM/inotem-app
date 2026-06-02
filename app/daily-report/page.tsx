@@ -22,7 +22,7 @@ const POSITION_FIELDS = {
     { key: 'design_delivery_count', label: 'デザイン納品件数' },
   ],
   pm: [
-    { key: 'comparative_biz_mtg_count', label: '比較BizMTG件数' },
+    { key: 'comparative_biz_mtg_count', label: 'MTG件数' },
     { key: 'x_dm_count', label: 'X-DM送付数' },
     { key: 'x_post_count', label: 'X投稿数' },
     { key: 'x_follower_count', label: 'Xフォロワー数', snapshot: true },
