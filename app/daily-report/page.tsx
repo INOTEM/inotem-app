@@ -70,6 +70,7 @@ export default function DailyReportPage() {
   const [notes, setNotes] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [weeklyTotals, setWeeklyTotals] = useState({})
   const [monthlyTotals, setMonthlyTotals] = useState({})
   const [targets, setTargets] = useState({})
@@ -150,10 +151,15 @@ export default function DailyReportPage() {
   const handleSubmit = async () => {
     if (!profile) return
     setLoading(true)
+    setSubmitError('')
     const { error } = await supabase.from('daily_reports').upsert({
       user_id: profile.authId, report_date: today, ...formData, notes
     }, { onConflict: 'user_id,report_date' })
-    if (!error) setSubmitted(true)
+    if (error) {
+      setSubmitError(`保存に失敗しました: ${error.message}`)
+    } else {
+      setSubmitted(true)
+    }
     setLoading(false)
   }
 
@@ -228,7 +234,8 @@ export default function DailyReportPage() {
                 >
                   {submitted ? '更新する' : '提出する'}
                 </button>
-                {submitted && <p className="text-center text-green-600 mt-2 font-extrabold text-base">提出済み ✓</p>}
+                {submitted && !submitError && <p className="text-center text-green-600 mt-2 font-extrabold text-base">提出済み ✓</p>}
+                {submitError && <p className="text-center text-red-500 mt-2 font-extrabold text-sm">{submitError}</p>}
               </div>
 
               {/* 中：週次進捗 */}

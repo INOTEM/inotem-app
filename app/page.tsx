@@ -23,6 +23,16 @@ const STATUS_COLORS = {
   '退勤': 'bg-gray-900',
 }
 
+const getWeekStart = () => {
+  const now = new Date()
+  const day = now.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + diff)
+  monday.setHours(0, 0, 0, 0)
+  return monday.toISOString().split('T')[0]
+}
+
 const calcDailyHours = (dayLogs) => {
   const sorted = [...dayLogs].sort((a, b) =>
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -54,8 +64,9 @@ export default function HomePage() {
   const [teamStatus, setTeamStatus] = useState([])
   const [loading, setLoading] = useState(false)
   const [reportSubmitted, setReportSubmitted] = useState(false)
+  const [weeklySubmitted, setWeeklySubmitted] = useState(false)
   const [userPosition, setUserPosition] = useState('')
-  const [reportError, setReportError] = useState(false)
+  const [blockError, setBlockError] = useState(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -77,6 +88,11 @@ export default function HomePage() {
         .from('daily_reports').select('id')
         .eq('user_id', user.id).eq('report_date', todayStr).single()
       if (report) setReportSubmitted(true)
+
+      const { data: weekly } = await supabase
+        .from('weekly_reflections').select('id')
+        .eq('user_id', user.id).eq('week_start', getWeekStart()).single()
+      if (weekly) setWeeklySubmitted(true)
     }
     getUser()
   }, [])
@@ -121,8 +137,30 @@ export default function HomePage() {
 
   const handleAction = async (action) => {
     if (!user) return
-    
-    setReportError(false)
+
+    setBlockError(null)
+
+    // 退勤前チェック（管理者は対象外）
+    if (action === '退勤' && userPosition !== 'admin') {
+      if (!reportSubmitted) {
+        setBlockError({
+          message: '退勤前に日報を提出してください',
+          label: '日報を提出する',
+          route: '/daily-report',
+        })
+        return
+      }
+      // 金曜は週報の提出も必須
+      if (new Date().getDay() === 5 && !weeklySubmitted) {
+        setBlockError({
+          message: '退勤前に週次振り返りを提出してください',
+          label: '週報を提出する',
+          route: '/weekly-report',
+        })
+        return
+      }
+    }
+
     setLoading(true)
     const { error } = await supabase.from('attendance_logs').insert({ user_id: user.id, action })
     if (!error) {
@@ -173,6 +211,14 @@ export default function HomePage() {
             >
               報告
             </button>
+            {now.getDay() === 5 && (
+              <button
+                onClick={() => router.push('/weekly-report')}
+                className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
+              >
+                週報
+              </button>
+            )}
             <button
               onClick={handleLogout}
               className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
@@ -199,14 +245,14 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-            {reportError && (
+            {blockError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                <p className="text-base text-red-600 font-extrabold">退勤前に日報を提出してください</p>
+                <p className="text-base text-red-600 font-extrabold">{blockError.message}</p>
                 <button
-                  onClick={() => router.push('/daily-report')}
+                  onClick={() => router.push(blockError.route)}
                   className="text-sm text-red-500 underline mt-1"
                 >
-                  日報を提出する
+                  {blockError.label}
                 </button>
               </div>
             )}
