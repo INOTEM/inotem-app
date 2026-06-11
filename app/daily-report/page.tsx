@@ -41,14 +41,17 @@ const CHART_COLORS = {
   task_count: '#D4537E',
 }
 
+// JST基準の "YYYY-MM-DD"
+const jstDateStr = (d = new Date()) =>
+  new Date(d.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10)
+
 const getWeekStart = () => {
-  const now = new Date()
-  const day = now.getDay()
+  // JST基準で当該週の月曜日
+  const jst = new Date(Date.now() + 9 * 3600 * 1000)
+  const day = jst.getUTCDay()
   const diff = day === 0 ? -6 : 1 - day
-  const monday = new Date(now)
-  monday.setDate(now.getDate() + diff)
-  monday.setHours(0, 0, 0, 0)
-  return monday.toISOString().split('T')[0]
+  jst.setUTCDate(jst.getUTCDate() + diff)
+  return jst.toISOString().slice(0, 10)
 }
 
 const calcTotals = (data, fields) => {
@@ -79,9 +82,10 @@ export default function DailyReportPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const now = new Date()
-  const today = now.toISOString().split('T')[0]
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const jstNow = new Date(Date.now() + 9 * 3600 * 1000)
+  const jstMonth = jstNow.getUTCMonth() + 1
+  const today = jstDateStr()
+  const currentMonth = today.slice(0, 7)
 
   useEffect(() => {
     const init = async () => {
@@ -127,9 +131,9 @@ export default function DailyReportPage() {
         .order('report_date', { ascending: false })
       if (monthData) setMonthlyTotals(calcTotals(monthData, fields))
 
-      const sixAgo = new Date()
-      sixAgo.setMonth(sixAgo.getMonth() - 5)
-      const startMonth = `${sixAgo.getFullYear()}-${String(sixAgo.getMonth() + 1).padStart(2, '0')}-01`
+      const sixAgo = new Date(Date.now() + 9 * 3600 * 1000)
+      sixAgo.setUTCMonth(sixAgo.getUTCMonth() - 5)
+      const startMonth = `${sixAgo.getUTCFullYear()}-${String(sixAgo.getUTCMonth() + 1).padStart(2, '0')}-01`
       const { data: halfData } = await supabase
         .from('daily_reports').select('*')
         .eq('user_id', user.id).gte('report_date', startMonth)
@@ -269,7 +273,7 @@ export default function DailyReportPage() {
 
               {/* 右：月次進捗 */}
               <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <h2 className="text-base font-extrabold mb-4">{now.getMonth() + 1}月の進捗</h2>
+                <h2 className="text-base font-extrabold mb-4">{jstMonth}月の進捗</h2>
                 <div className="space-y-3">
                   {fields.map(field => {
                     const total = monthlyTotals[field.key] ?? 0

@@ -6,13 +6,12 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase'
 
 const getWeekStart = () => {
-  const now = new Date()
-  const day = now.getDay()
+  // JST基準で当該週の月曜日
+  const jst = new Date(Date.now() + 9 * 3600 * 1000)
+  const day = jst.getUTCDay()
   const diff = day === 0 ? -6 : 1 - day
-  const monday = new Date(now)
-  monday.setDate(now.getDate() + diff)
-  monday.setHours(0, 0, 0, 0)
-  return monday.toISOString().split('T')[0]
+  jst.setUTCDate(jst.getUTCDate() + diff)
+  return jst.toISOString().slice(0, 10)
 }
 
 const FIELDS = [

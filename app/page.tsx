@@ -23,14 +23,26 @@ const STATUS_COLORS = {
   '退勤': 'bg-gray-900',
 }
 
+const TZ = 'Asia/Tokyo'
+// JST基準の "YYYY-MM-DD"
+const jstDateStr = (d = new Date()) =>
+  new Date(d.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10)
+// JSTのその日0時をUTC ISO文字列で（クエリ境界用）
+const jstDayStartISO = (d = new Date()) =>
+  new Date(jstDateStr(d) + 'T00:00:00+09:00').toISOString()
+// JSTの当月1日0時をUTC ISO文字列で
+const jstMonthStartISO = (d = new Date()) => {
+  const [y, m] = jstDateStr(d).split('-')
+  return new Date(`${y}-${m}-01T00:00:00+09:00`).toISOString()
+}
+
 const getWeekStart = () => {
-  const now = new Date()
-  const day = now.getDay()
+  // JST基準で当該週の月曜日を返す
+  const jst = new Date(Date.now() + 9 * 3600 * 1000)
+  const day = jst.getUTCDay()
   const diff = day === 0 ? -6 : 1 - day
-  const monday = new Date(now)
-  monday.setDate(now.getDate() + diff)
-  monday.setHours(0, 0, 0, 0)
-  return monday.toISOString().split('T')[0]
+  jst.setUTCDate(jst.getUTCDate() + diff)
+  return jst.toISOString().slice(0, 10)
 }
 
 const calcDailyHours = (dayLogs) => {
@@ -83,7 +95,7 @@ export default function HomePage() {
         .from('staff_profiles').select('position').eq('user_id', user.id).single()
       if (prof) setUserPosition(prof.position)
 
-      const todayStr = new Date().toISOString().split('T')[0]
+      const todayStr = jstDateStr()
       const { data: report } = await supabase
         .from('daily_reports').select('id')
         .eq('user_id', user.id).eq('report_date', todayStr).single()
@@ -98,11 +110,9 @@ export default function HomePage() {
   }, [])
 
   const fetchTodayLogs = async (userId) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
     const { data } = await supabase
       .from('attendance_logs').select('*')
-      .eq('user_id', userId).gte('created_at', today.toISOString())
+      .eq('user_id', userId).gte('created_at', jstDayStartISO())
       .order('created_at', { ascending: true })
     if (data && data.length > 0) {
       setTodayLogs(data)
@@ -111,22 +121,18 @@ export default function HomePage() {
   }
 
   const fetchMonthlyLogs = async (userId) => {
-    const now = new Date()
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
     const { data } = await supabase
       .from('attendance_logs').select('*')
-      .eq('user_id', userId).gte('created_at', firstDay.toISOString())
+      .eq('user_id', userId).gte('created_at', jstMonthStartISO())
       .order('created_at', { ascending: true })
     if (data) setMonthlyLogs(data)
   }
 
   const fetchTeamStatus = async () => {
     const { data: staff } = await supabase.from('staff_profiles').select('user_id, name')
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
     const { data: logs } = await supabase
       .from('attendance_logs').select('user_id, action, created_at')
-      .gte('created_at', today.toISOString()).order('created_at', { ascending: false })
+      .gte('created_at', jstDayStartISO()).order('created_at', { ascending: false })
     if (staff && logs) {
       setTeamStatus(staff.map(member => ({
         name: member.name,
@@ -151,7 +157,7 @@ export default function HomePage() {
         return
       }
       // 金曜は週報の提出も必須
-      if (new Date().getDay() === 5 && !weeklySubmitted) {
+      if (new Date(Date.now() + 9 * 3600 * 1000).getUTCDay() === 5 && !weeklySubmitted) {
         setBlockError({
           message: '退勤前に週次振り返りを提出してください',
           label: '週報を提出する',
@@ -178,7 +184,7 @@ export default function HomePage() {
   }
 
   const groupedByDate = monthlyLogs.reduce((acc, log) => {
-    const date = new Date(log.created_at).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })
+    const date = new Date(log.created_at).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', timeZone: TZ })
     if (!acc[date]) acc[date] = []
     acc[date].push(log)
     return acc
@@ -188,7 +194,9 @@ export default function HomePage() {
     .map(logs => calcDailyHours(logs)?.hours ?? 0)
     .reduce((a, b) => a + b, 0)
 
-  const now = new Date()
+  const jstNow = new Date(Date.now() + 9 * 3600 * 1000)
+  const jstWeekday = jstNow.getUTCDay()   // 0=日 .. 5=金
+  const jstMonth = jstNow.getUTCMonth() + 1
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -211,7 +219,7 @@ export default function HomePage() {
             >
               報告
             </button>
-            {now.getDay() === 5 && (
+            {jstWeekday === 5 && (
               <button
                 onClick={() => router.push('/weekly-report')}
                 className="text-base bg-black text-white px-3 py-1 rounded border border-black hover:bg-white hover:text-black transition-colors"
@@ -265,7 +273,7 @@ export default function HomePage() {
                   <div key={i} className="flex justify-between text-base py-1 border-b border-gray-100 last:border-0">
                     <span>{log.action}</span>
                     <span className="text-gray-400">
-                      {new Date(log.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(log.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', timeZone: TZ })}
                     </span>
                   </div>
                 ))
@@ -275,7 +283,7 @@ export default function HomePage() {
 
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-base font-extrabold">{now.getMonth() + 1}月の勤務表</h2>
+              <h2 className="text-base font-extrabold">{jstMonth}月の勤務表</h2>
               <span className="text-base font-extrabold">合計 {totalHours.toFixed(2)}h</span>
             </div>
             {Object.keys(groupedByDate).length === 0 ? (
@@ -284,9 +292,9 @@ export default function HomePage() {
               Object.entries(groupedByDate).map(([date, logs]) => {
                 const result = calcDailyHours(logs)
                 const timeStr = result
-                  ? result.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                  ? result.clockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', timeZone: TZ })
                     + ' - '
-                    + result.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                    + result.clockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', timeZone: TZ })
                   : '-'
                 return (
                   <div key={date} className="flex justify-between text-base py-2 border-b border-gray-100 last:border-0">
